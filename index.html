@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>自律周结算系统</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">Weekly Discipline System</p>
+          <h1>自律周结算</h1>
+        </div>
+        <div class="week-card">
+          <span id="weekRange">本周</span>
+          <strong id="totalScore">0</strong>
+          <small>全员本周积分</small>
+        </div>
+      </section>
+
+      <section class="people-bar" aria-label="成员切换">
+        <div>
+          <p class="eyebrow">Members</p>
+          <h2>成员切换</h2>
+        </div>
+        <div class="person-tools">
+          <div id="personTabs" class="person-tabs"></div>
+          <form id="personForm" class="person-form">
+            <input id="personNameInput" type="text" maxlength="12" placeholder="新增成员" aria-label="新增成员名称" />
+            <button class="ghost-button" type="submit">添加</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="summary-grid" aria-label="本周概览">
+        <article class="summary-panel">
+          <span>当前成员</span>
+          <strong id="activePersonName">我</strong>
+          <small id="activePersonScore">本周 0 分</small>
+        </article>
+        <article class="summary-panel">
+          <span>个人等级</span>
+          <strong id="levelName">见习者</strong>
+          <div class="progress-track">
+            <div id="levelProgress" class="progress-fill"></div>
+          </div>
+          <small id="nextLevelText">距离下一等级还差 0 分</small>
+        </article>
+        <article class="summary-panel">
+          <span>达成率</span>
+          <strong id="completionRate">0%</strong>
+          <div class="progress-track">
+            <div id="completionProgress" class="progress-fill accent"></div>
+          </div>
+          <small>按五项目标综合计算</small>
+        </article>
+        <article class="summary-panel">
+          <span>已解锁成就</span>
+          <strong id="achievementCount">0</strong>
+          <small id="latestAchievement">先完成一项小目标</small>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <section class="panel tracker-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Daily Inputs</p>
+              <h2>按天录入</h2>
+            </div>
+            <button id="resetWeek" class="icon-button" type="button" title="清空本周">↺</button>
+          </div>
+
+          <div class="daily-table-wrap">
+            <table class="daily-table">
+              <thead>
+                <tr>
+                  <th>日期</th>
+                  <th>运动</th>
+                  <th>读书</th>
+                  <th>节食</th>
+                  <th>睡眠</th>
+                  <th>AI 学习</th>
+                  <th>进度</th>
+                </tr>
+              </thead>
+              <tbody id="dailyRows"></tbody>
+            </table>
+          </div>
+          <button id="settleWeek" class="primary-button" type="button">结算本周</button>
+        </section>
+
+        <div class="side-stack">
+          <section class="panel leaderboard-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Leaderboard</p>
+                <h2>总分排行榜</h2>
+              </div>
+            </div>
+            <div id="leaderboardList" class="leaderboard-list"></div>
+          </section>
+
+          <section class="panel achievement-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Achievements</p>
+                <h2>个人成就墙</h2>
+              </div>
+            </div>
+            <div id="achievements" class="achievement-grid"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel history-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Weekly Ledger</p>
+            <h2>结算记录</h2>
+          </div>
+          <button id="clearHistory" class="ghost-button" type="button">清除记录</button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

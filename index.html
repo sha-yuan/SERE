@@ -64,33 +64,31 @@
       </section>
 
       <section class="workspace">
-        <section class="panel tracker-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Daily Inputs</p>
-              <h2>按天录入</h2>
+        <div class="left-stack">
+          <section class="panel tracker-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Daily Inputs</p>
+                <h2>按天录入</h2>
+              </div>
+              <button id="resetWeek" class="icon-button" type="button" title="清空本周">↺</button>
             </div>
-            <button id="resetWeek" class="icon-button" type="button" title="清空本周">↺</button>
-          </div>
 
-          <div class="daily-table-wrap">
-            <table class="daily-table">
-              <thead>
-                <tr>
-                  <th>日期</th>
-                  <th>运动</th>
-                  <th>读书</th>
-                  <th>节食</th>
-                  <th>睡眠</th>
-                  <th>AI 学习</th>
-                  <th>进度</th>
-                </tr>
-              </thead>
-              <tbody id="dailyRows"></tbody>
-            </table>
-          </div>
-          <button id="settleWeek" class="primary-button" type="button">结算本周</button>
-        </section>
+            <div id="dailyCards" class="daily-card-grid" aria-label="每日打卡"></div>
+            <button id="settleWeek" class="primary-button" type="button">结算本周</button>
+          </section>
+
+          <section class="panel history-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Weekly Ledger</p>
+                <h2>结算记录</h2>
+              </div>
+              <button id="clearHistory" class="ghost-button" type="button">清除记录</button>
+            </div>
+            <div id="historyList" class="history-list"></div>
+          </section>
+        </div>
 
         <div class="side-stack">
           <section class="panel leaderboard-panel">
@@ -110,22 +108,14 @@
                 <h2>个人成就墙</h2>
               </div>
             </div>
+            <div id="achievementOverview" class="achievement-overview"></div>
+            <div id="achievementFilters" class="achievement-filters" aria-label="成就分类"></div>
             <div id="achievements" class="achievement-grid"></div>
           </section>
         </div>
       </section>
-
-      <section class="panel history-panel">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">Weekly Ledger</p>
-            <h2>结算记录</h2>
-          </div>
-          <button id="clearHistory" class="ghost-button" type="button">清除记录</button>
-        </div>
-        <div id="historyList" class="history-list"></div>
-      </section>
     </main>
+    <div id="feedbackToast" class="feedback-toast" aria-live="polite" aria-atomic="true"></div>
 
     <script src="./app.js"></script>
   </body>

@@ -96,6 +96,32 @@ h1 {
   letter-spacing: 0;
 }
 
+.sync-status {
+  display: inline-grid;
+  min-height: 28px;
+  margin-top: 12px;
+  place-items: center;
+  padding: 0 10px;
+  border: 1px solid rgba(47, 143, 111, 0.28);
+  border-radius: 999px;
+  background: #edf7f2;
+  color: #17624b;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.sync-status[data-status="saving"] {
+  border-color: rgba(212, 154, 41, 0.42);
+  background: #fff6df;
+  color: #8a5c10;
+}
+
+.sync-status[data-status="offline"] {
+  border-color: rgba(199, 83, 69, 0.35);
+  background: #fff0ee;
+  color: #a33b31;
+}
+
 h2 {
   margin-bottom: 0;
   font-size: 1.25rem;
@@ -309,6 +335,27 @@ h3 {
   transform: translateY(-1px);
 }
 
+.daily-card.indulgence {
+  position: relative;
+  border-color: rgba(199, 83, 69, 0.16);
+  background:
+    linear-gradient(135deg, rgba(199, 83, 69, 0.025), transparent 42%),
+    linear-gradient(315deg, rgba(199, 83, 69, 0.03), transparent 46%),
+    #fcfaf9;
+  box-shadow: inset 4px 0 0 #d6bfba;
+}
+
+.daily-card.indulgence::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(122deg, transparent 29%, rgba(199, 83, 69, 0.08) 30%, transparent 31%) 18px 14px / 96px 56px no-repeat,
+    linear-gradient(58deg, transparent 41%, rgba(199, 83, 69, 0.06) 42%, transparent 43%) 124px 24px / 82px 44px no-repeat,
+    linear-gradient(142deg, transparent 46%, rgba(199, 83, 69, 0.05) 47%, transparent 48%) 232px 10px / 90px 60px no-repeat;
+}
+
 .daily-card-head {
   display: grid;
   grid-template-columns: 64px 1fr;
@@ -367,12 +414,6 @@ h3 {
     transform 160ms ease;
 }
 
-.daily-check input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
 .daily-check span {
   display: grid;
   width: 100%;
@@ -382,14 +423,14 @@ h3 {
   line-height: 1;
 }
 
-.daily-check:has(input:checked) {
+.daily-check[aria-pressed="true"] {
   border-color: #1f765d;
   background: var(--green);
   color: #fff;
   transform: translateY(-1px);
 }
 
-.daily-check:focus-within {
+.daily-check:focus-visible {
   outline: 3px solid rgba(47, 143, 111, 0.2);
   outline-offset: 2px;
 }
@@ -449,8 +490,25 @@ h3 {
   box-shadow: 0 8px 18px rgba(212, 154, 41, 0.28);
 }
 
+.daily-reward.penalty {
+  background: #f4ece9;
+  color: #8a5e58;
+}
+
 .day-progress-card.unlocked .mini-progress span {
   background: var(--gold);
+}
+
+.daily-card.indulgence .day-progress-top strong {
+  color: #8a5e58;
+}
+
+.daily-card.indulgence .mini-progress {
+  background: #ece1de;
+}
+
+.daily-card.indulgence .day-progress-card.unlocked .mini-progress span {
+  background: #c8aaa4;
 }
 
 .daily-card.complete .mini-progress {
@@ -497,6 +555,12 @@ h3 {
 .feedback-toast.minor {
   border-color: rgba(47, 143, 111, 0.42);
   background: #f0f8f4;
+}
+
+.feedback-toast.penalty {
+  border-color: rgba(199, 83, 69, 0.42);
+  background: #fff0ee;
+  color: #a33b31;
 }
 
 .feedback-toast.grand {
@@ -569,6 +633,35 @@ h3 {
   gap: 12px;
 }
 
+.achievement-tone-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.achievement-tone-tab {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.achievement-tone-tab.active {
+  border-color: #1f765d;
+  background: #e9f4ef;
+  color: #17624b;
+}
+
+.achievement-tone-tab[data-tone="negative"].active {
+  border-color: rgba(199, 83, 69, 0.22);
+  background: #faf5f4;
+  color: #8a5e58;
+}
+
 .achievement-overview {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -636,14 +729,34 @@ h3 {
   background: #fbfcfd;
 }
 
+.achievement.tone-negative {
+  border-color: rgba(199, 83, 69, 0.14);
+  background:
+    linear-gradient(135deg, rgba(199, 83, 69, 0.03), transparent 50%),
+    #fcfaf9;
+}
+
 .achievement.locked {
   background: #f4f6f8;
+}
+
+.achievement.tone-negative.locked {
+  background:
+    linear-gradient(135deg, rgba(199, 83, 69, 0.025), transparent 52%),
+    #f6f3f2;
 }
 
 .achievement-topline {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.achievement-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: end;
 }
 
 .achievement .badge,
@@ -677,9 +790,34 @@ h3 {
   color: #17624b;
 }
 
+.achievement.tone-negative .badge {
+  background: #f4e6e2;
+  color: #8a5e58;
+}
+
 .achievement.locked .badge {
   background: #e4e9ee;
   color: #7b8794;
+}
+
+.tone-label {
+  display: inline-grid;
+  min-height: 24px;
+  place-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.tone-positive .tone-label {
+  background: #eaf4f0;
+  color: #17624b;
+}
+
+.tone-negative .tone-label {
+  background: #f4ece9;
+  color: #8a5e58;
 }
 
 .tier-label {
@@ -714,6 +852,11 @@ h3 {
 
 .achievement.locked .achievement-progress .mini-progress span {
   background: var(--green);
+}
+
+.achievement.tone-negative .achievement-progress .mini-progress span,
+.achievement.tone-negative.locked .achievement-progress .mini-progress span {
+  background: #c8aaa4;
 }
 
 .history-list {

@@ -96,10 +96,20 @@
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Leaderboard</p>
-                <h2>总分排行榜</h2>
+                <h2>排行榜</h2>
               </div>
+              <button id="generateReport" class="ghost-button" type="button">生成战报</button>
             </div>
-            <div id="leaderboardList" class="leaderboard-list"></div>
+            <div class="leaderboard-split">
+              <section class="leaderboard-block">
+                <h3>周排行</h3>
+                <div id="weeklyLeaderboardList" class="leaderboard-list"></div>
+              </section>
+              <section class="leaderboard-block">
+                <h3>总排行</h3>
+                <div id="totalLeaderboardList" class="leaderboard-list"></div>
+              </section>
+            </div>
           </section>
 
           <section class="panel achievement-panel">
@@ -118,6 +128,23 @@
       </section>
     </main>
     <div id="feedbackToast" class="feedback-toast" aria-live="polite" aria-atomic="true"></div>
+    <div id="reportModal" class="report-modal" hidden>
+      <div class="report-modal-backdrop" data-close-report></div>
+      <section class="report-modal-dialog" role="dialog" aria-modal="true" aria-label="战报长图">
+        <div class="report-modal-head">
+          <div>
+            <p class="eyebrow">Weekly Report</p>
+            <h2>战报预览</h2>
+          </div>
+          <button id="closeReportModal" class="icon-button" type="button" aria-label="关闭战报">×</button>
+        </div>
+        <img id="reportModalImage" class="report-modal-image" alt="本周战报长图" />
+        <div class="report-modal-actions">
+          <a id="reportDownloadButton" class="ghost-button report-action" href="#" download>下载</a>
+          <button id="reportCopyButton" class="ghost-button report-action" type="button">复制到剪贴板</button>
+        </div>
+      </section>
+    </div>
 
     <script src="./app.js"></script>
   </body>

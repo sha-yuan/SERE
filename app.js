@@ -58,6 +58,40 @@ const achievements = [
     progress: ({ settledCount }) => settledCount,
   },
   {
+    id: "weeklyJudge",
+    category: "milestone",
+    tier: "bronze",
+    icon: "判",
+    title: "轮值裁判",
+    desc: "负责完成任意一周的结算",
+    target: 1,
+    progress: ({ judgeWeeks }) => judgeWeeks,
+    count: ({ judgeWeeks }) => judgeWeeks,
+  },
+  {
+    id: "weeklyChampion",
+    category: "score",
+    tier: "silver",
+    icon: "冠",
+    title: "周第一",
+    desc: "在任意一次周结算中拿到第一",
+    target: 1,
+    progress: ({ weeklyFirstCount }) => weeklyFirstCount,
+    count: ({ weeklyFirstCount }) => weeklyFirstCount,
+  },
+  {
+    id: "weeklyTail",
+    category: "score",
+    tier: "bronze",
+    icon: "尾",
+    title: "周倒数第一",
+    desc: "在任意一次周结算中排到最后",
+    tone: "negative",
+    target: 1,
+    progress: ({ weeklyLastCount }) => weeklyLastCount,
+    count: ({ weeklyLastCount }) => weeklyLastCount,
+  },
+  {
     id: "balanced",
     category: "balance",
     tier: "silver",
@@ -66,6 +100,7 @@ const achievements = [
     desc: "任意一周五项都达到目标",
     target: 1,
     progress: ({ balancedWeeks }) => balancedWeeks,
+    count: ({ balancedWeeks }) => balancedWeeks,
   },
   {
     id: "balanced3",
@@ -86,6 +121,7 @@ const achievements = [
     desc: "本周任意一天完成 5 项",
     target: 1,
     progress: ({ perfectDays }) => perfectDays,
+    count: ({ perfectDays }) => perfectDays,
   },
   {
     id: "perfectWeek",
@@ -107,6 +143,7 @@ const achievements = [
     tone: "negative",
     target: 1,
     progress: ({ indulgenceDays }) => indulgenceDays,
+    count: ({ indulgenceDays }) => indulgenceDays,
   },
   {
     id: "sweat",
@@ -168,6 +205,7 @@ const achievements = [
     tone: "negative",
     target: 1,
     progress: ({ blankHabitWeeks }) => blankHabitWeeks,
+    count: ({ blankHabitWeeks }) => blankHabitWeeks,
   },
   {
     id: "habitHundred",
@@ -263,16 +301,25 @@ const achievementOverviewEl = document.querySelector("#achievementOverview");
 const achievementFiltersEl = document.querySelector("#achievementFilters");
 const achievementToneTabsEl = document.querySelector("#achievementToneTabs");
 const historyList = document.querySelector("#historyList");
-const leaderboardList = document.querySelector("#leaderboardList");
+const weeklyLeaderboardList = document.querySelector("#weeklyLeaderboardList");
+const totalLeaderboardList = document.querySelector("#totalLeaderboardList");
 const personTabs = document.querySelector("#personTabs");
 const personForm = document.querySelector("#personForm");
 const personNameInput = document.querySelector("#personNameInput");
 const settleWeekButton = document.querySelector("#settleWeek");
 const feedbackToast = document.querySelector("#feedbackToast");
 const syncStatusEl = document.querySelector("#syncStatus");
+const generateReportButton = document.querySelector("#generateReport");
+const reportModal = document.querySelector("#reportModal");
+const reportModalImage = document.querySelector("#reportModalImage");
+const reportDownloadButton = document.querySelector("#reportDownloadButton");
+const reportCopyButton = document.querySelector("#reportCopyButton");
+const closeReportModalButton = document.querySelector("#closeReportModal");
+const reportModalBackdrop = document.querySelector(".report-modal-backdrop");
 let feedbackTimer;
 let activeAchievementCategory = "all";
 let activeAchievementTone = "positive";
+let currentReportImageUrl = "";
 
 function createEmptyTotals() {
   return Object.fromEntries(habits.map((habit) => [habit.id, 0]));
@@ -469,15 +516,19 @@ function getDayReward(doneCount) {
   return "";
 }
 
-function getDayPenaltyReward(date, entry) {
+function getDayPenaltyRewardForPerson(personId, date, entry) {
   if (getDayCompletion(entry) !== 0) return "";
 
   const nextDate = new Date(date);
   nextDate.setDate(date.getDate() + 1);
   const nextDateKey = getDateKey(nextDate);
-  const nextEntry = state.dailyEntries[state.activePersonId]?.[nextDateKey];
+  const nextEntry = state.dailyEntries[personId]?.[nextDateKey];
 
   return getDayCompletion(nextEntry || {}) > 0 ? "放纵日" : "";
+}
+
+function getDayPenaltyReward(date, entry) {
+  return getDayPenaltyRewardForPerson(state.activePersonId, date, entry);
 }
 
 function getHistoryIndulgenceDays(personId) {
@@ -500,6 +551,44 @@ function getHistoryIndulgenceDays(personId) {
 
 function countBlankHabitWeeks(weeks) {
   return weeks.filter((entries) => habits.some((habit) => Number(entries[habit.id] || 0) === 0)).length;
+}
+
+function getCurrentWeekRewardStats() {
+  return getPersonRewardStatsRows().reduce(
+    (stats, row) => {
+      stats.minor += row.minor;
+      stats.grand += row.grand;
+      stats.penalty += row.penalty;
+      return stats;
+    },
+    { minor: 0, grand: 0, penalty: 0 },
+  );
+}
+
+function getPersonRewardStatsRows() {
+  const settledWeek = getCurrentWeekSettlement();
+
+  return state.people.map((person) => {
+    const stats = { person, minor: 0, grand: 0, penalty: 0 };
+    const settledPersonWeek = settledWeek?.people?.find((item) => item.personId === person.id);
+    const entries = settledPersonWeek?.dailyEntries
+      ? settledPersonWeek.dailyEntries.map((entry) => ({ date: getDateFromKey(entry.date), entry }))
+      : getWeekDays().map((date) => ({
+          date,
+          entry: state.dailyEntries[person.id]?.[getDateKey(date)] || {},
+        }));
+
+    entries.forEach(({ entry }, index) => {
+      const doneCount = getDayCompletion(entry);
+      const reward = getDayReward(doneCount);
+      const nextEntry = entries[index + 1]?.entry || {};
+      if (reward === "神迹") stats.minor += 1;
+      if (reward === "五金店") stats.grand += 1;
+      if (getDayCompletion(entry) === 0 && getDayCompletion(nextEntry) > 0) stats.penalty += 1;
+    });
+
+    return stats;
+  });
 }
 
 function getBestRewardStreak(personId) {
@@ -560,6 +649,12 @@ function hasSettledCurrentWeek() {
   return state.history.some((week) => week.weekKey === currentWeekKey || week.range === currentWeekRange);
 }
 
+function getCurrentWeekSettlement() {
+  const currentWeekKey = getWeekKey();
+  const currentWeekRange = getWeekRange();
+  return state.history.find((week) => week.weekKey === currentWeekKey || week.range === currentWeekRange);
+}
+
 function getPersonHistory(personId) {
   return state.history
     .map((week) => week.people.find((personWeek) => personWeek.personId === personId))
@@ -571,7 +666,34 @@ function getPersonLifetimeScore(personId) {
   return historyScore + calculateScore(getPersonWeekTotals(personId));
 }
 
-function getLeaderboard() {
+function sortRanking(items, scoreKey) {
+  return items.sort((a, b) => b[scoreKey] - a[scoreKey] || a.name.localeCompare(b.name));
+}
+
+function getWeeklyLeaderboard() {
+  const settledWeek = getCurrentWeekSettlement();
+  if (settledWeek?.people?.length) {
+    return sortRanking(state.people.map((person) => {
+      const personWeek = settledWeek.people.find((item) => item.personId === person.id);
+      return {
+        ...person,
+        currentScore: Number(personWeek?.score || 0),
+      };
+    }), "currentScore");
+  }
+
+  return sortRanking(state.people
+    .map((person) => {
+      const currentTotals = getPersonWeekTotals(person.id);
+      const currentScore = calculateScore(currentTotals);
+      return {
+        ...person,
+        currentScore,
+      };
+    }), "currentScore");
+}
+
+function getTotalLeaderboard() {
   return state.people
     .map((person) => {
       const currentTotals = getPersonWeekTotals(person.id);
@@ -587,6 +709,29 @@ function getLeaderboard() {
     .sort((a, b) => b.totalScore - a.totalScore || b.currentScore - a.currentScore || a.name.localeCompare(b.name));
 }
 
+function getLeaderboard() {
+  return getTotalLeaderboard();
+}
+
+function getWeeklyPlacementCounts(personId) {
+  return state.history.reduce(
+    (counts, week) => {
+      const people = week.people || [];
+      if (!people.length) return counts;
+
+      const ranked = [...people].sort((a, b) => Number(b.score || 0) - Number(a.score || 0) || a.personName.localeCompare(b.personName));
+      if (ranked[0]?.personId === personId) {
+        counts.first += 1;
+      }
+      if (ranked.length > 1 && ranked.at(-1)?.personId === personId) {
+        counts.last += 1;
+      }
+      return counts;
+    },
+    { first: 0, last: 0 },
+  );
+}
+
 function getLevel(totalScore) {
   return [...levels].reverse().find((level) => totalScore >= level.min) || levels[0];
 }
@@ -594,12 +739,18 @@ function getLevel(totalScore) {
 function getAchievementContext(personId) {
   const currentTotals = getPersonWeekTotals(personId);
   const settledWeeks = getPersonHistory(personId);
+  const judgeWeeks = state.history.filter((week) => week.settledByPersonId === personId).length;
+  const weeklyPlacements = getWeeklyPlacementCounts(personId);
   const weeks = [currentTotals, ...settledWeeks.map((week) => week.totals)];
   const weeklyScores = [calculateScore(currentTotals), ...settledWeeks.map((week) => week.score)];
   const habitTotals = createEmptyTotals();
   const maxHabitWeek = createEmptyTotals();
   const currentWeekEntries = getWeekDays().map((date) => state.dailyEntries[personId]?.[getDateKey(date)] || {});
-  const perfectDays = currentWeekEntries.filter((entry) => getDayCompletion(entry) === habits.length).length;
+  const currentPerfectDays = currentWeekEntries.filter((entry) => getDayCompletion(entry) === habits.length).length;
+  const historicalPerfectDays = settledWeeks.reduce((sum, week) => {
+    return sum + (week.dailyEntries || []).filter((entry) => getDayCompletion(entry) === habits.length).length;
+  }, 0);
+  const perfectDays = currentPerfectDays + historicalPerfectDays;
   const weekDays = getWeekDays();
   const currentIndulgenceDays = weekDays.slice(0, -1).filter((date, index) => {
     const entry = state.dailyEntries[personId]?.[getDateKey(date)] || {};
@@ -618,6 +769,9 @@ function getAchievementContext(personId) {
 
   return {
     settledCount: settledWeeks.length,
+    judgeWeeks,
+    weeklyFirstCount: weeklyPlacements.first,
+    weeklyLastCount: weeklyPlacements.last,
     totalScore: getPersonLifetimeScore(personId),
     bestWeekScore: Math.max(0, ...weeklyScores),
     balancedWeeks: weeks.filter((entries) => habits.every((habit) => Number(entries[habit.id] || 0) >= habit.target)).length,
@@ -635,11 +789,14 @@ function getAchievementStatus(achievement, context) {
   const target = achievement.target || 1;
   const rawValue = Number(achievement.progress(context) || 0);
   const value = Math.max(0, rawValue);
+  const rawCount = achievement.count ? Number(achievement.count(context) || 0) : value >= target ? 1 : 0;
+  const count = Math.max(0, Math.floor(rawCount));
   const percent = Math.min(100, Math.round((value / target) * 100));
 
   return {
     ...achievement,
     value,
+    count,
     target,
     percent,
     unlocked: value >= target,
@@ -816,9 +973,26 @@ function getUnlockedAchievements(personId) {
 }
 
 function renderLeaderboard() {
-  const leaderboard = getLeaderboard();
+  const weeklyLeaderboard = getWeeklyLeaderboard();
+  const totalLeaderboard = getTotalLeaderboard();
+  const weeklyCaption = getCurrentWeekSettlement() ? "本周已结算，保留结算分" : "本周积分，每周一自动重置";
 
-  leaderboardList.innerHTML = leaderboard
+  weeklyLeaderboardList.innerHTML = weeklyLeaderboard
+    .map(
+      (person, index) => `
+        <article class="leaderboard-item ${person.id === state.activePersonId ? "active" : ""}">
+          <span class="rank">${index + 1}</span>
+          <div>
+            <h3>${person.name}</h3>
+            <p>${weeklyCaption}</p>
+          </div>
+          <strong>${person.currentScore}</strong>
+        </article>
+      `,
+    )
+    .join("");
+
+  totalLeaderboardList.innerHTML = totalLeaderboard
     .map(
       (person, index) => `
         <article class="leaderboard-item ${person.id === state.activePersonId ? "active" : ""}">
@@ -832,6 +1006,269 @@ function renderLeaderboard() {
       `,
     )
     .join("");
+}
+
+function roundedRectPath(ctx, x, y, width, height, radius) {
+  const size = Math.min(radius, width / 2, height / 2);
+  ctx.moveTo(x + size, y);
+  ctx.lineTo(x + width - size, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + size);
+  ctx.lineTo(x + width, y + height - size);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - size, y + height);
+  ctx.lineTo(x + size, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - size);
+  ctx.lineTo(x, y + size);
+  ctx.quadraticCurveTo(x, y, x + size, y);
+}
+
+function drawRankingSection(ctx, title, caption, rankings, scoreKey, top) {
+  const width = 920;
+  const left = 80;
+  const rowHeight = 72;
+  const panelHeight = 92 + Math.max(rankings.length, 1) * rowHeight;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#dce3ea";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  roundedRectPath(ctx, left, top, width, panelHeight, 18);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#315f9f";
+  ctx.font = "700 28px PingFang SC, Microsoft YaHei, sans-serif";
+  ctx.fillText(title, left + 34, top + 48);
+
+  ctx.fillStyle = "#657184";
+  ctx.font = "500 20px PingFang SC, Microsoft YaHei, sans-serif";
+  ctx.fillText(caption, left + 34, top + 78);
+
+  if (!rankings.length) {
+    ctx.fillStyle = "#657184";
+    ctx.font = "600 24px PingFang SC, Microsoft YaHei, sans-serif";
+    ctx.fillText("暂无成员", left + 34, top + 132);
+    return panelHeight;
+  }
+
+  rankings.forEach((person, index) => {
+    const y = top + 112 + index * rowHeight;
+    ctx.fillStyle = index === 0 ? "#e9f4ef" : "#fbfcfd";
+    ctx.beginPath();
+    roundedRectPath(ctx, left + 26, y - 18, width - 52, 52, 12);
+    ctx.fill();
+
+    ctx.fillStyle = "#eef3f6";
+    ctx.beginPath();
+    roundedRectPath(ctx, left + 46, y - 10, 38, 38, 10);
+    ctx.fill();
+
+    ctx.fillStyle = "#315f9f";
+    ctx.font = "900 20px PingFang SC, Microsoft YaHei, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(String(index + 1), left + 65, y + 16);
+    ctx.textAlign = "left";
+
+    ctx.fillStyle = "#1c2430";
+    ctx.font = "800 24px PingFang SC, Microsoft YaHei, sans-serif";
+    ctx.fillText(person.name, left + 108, y + 15);
+
+    ctx.fillStyle = "#2f8f6f";
+    ctx.font = "900 28px PingFang SC, Microsoft YaHei, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(`${person[scoreKey]} 分`, left + width - 48, y + 16);
+    ctx.textAlign = "left";
+  });
+
+  return panelHeight;
+}
+
+function getAchievementBadge(achievement) {
+  const tierSymbol = {
+    bronze: "铜",
+    silver: "银",
+    gold: "金",
+    master: "冠",
+  }[achievement.tier] || "章";
+  return `${achievement.icon}${tierSymbol}`;
+}
+
+function getThisWeekUnlockedAchievements(personId) {
+  const context = getAchievementContext(personId);
+  return achievements
+    .map((achievement) => getAchievementStatus(achievement, context))
+    .filter((achievement) => achievement.unlocked && achievement.count > 0);
+}
+
+function getPersonAchievementReportRows() {
+  const rewardRows = getPersonRewardStatsRows();
+  return state.people.map((person) => {
+    const context = getAchievementContext(person.id);
+    const unlocked = achievements
+      .map((achievement) => getAchievementStatus(achievement, context))
+      .filter((achievement) => achievement.unlocked);
+    const positive = unlocked.filter((achievement) => getAchievementTone(achievement) === "positive" && achievement.id !== "weeklyJudge");
+    const featured = positive
+      .slice(-3)
+      .map((achievement) => achievement.title)
+      .join(" / ");
+    const rewardStats = rewardRows.find((row) => row.person.id === person.id) || { minor: 0, grand: 0, penalty: 0 };
+    return {
+      person,
+      positiveCount: positive.length,
+      totalCount: unlocked.length,
+      rewardStats,
+      featured: featured || "本周继续蓄力",
+    };
+  });
+}
+
+function drawAchievementReportSection(ctx, top, rows) {
+  const left = 80;
+  const width = 920;
+  const rowHeight = 78;
+  const panelHeight = 96 + Math.max(rows.length, 1) * rowHeight;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#dce3ea";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  roundedRectPath(ctx, left, top, width, panelHeight, 18);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#315f9f";
+  ctx.font = "700 26px PingFang SC, Microsoft YaHei, sans-serif";
+  ctx.fillText("个人成就总结", left + 34, top + 44);
+
+  ctx.fillStyle = "#657184";
+  ctx.font = "500 20px PingFang SC, Microsoft YaHei, sans-serif";
+  ctx.fillText("绿色进度条表示正向成就收集情况，右侧是本周状态计数", left + 34, top + 74);
+
+  rows.forEach((row, index) => {
+    const y = top + 118 + index * rowHeight;
+    const progress = Math.min(1, row.positiveCount / Math.max(1, achievements.filter((achievement) => getAchievementTone(achievement) === "positive").length));
+
+    ctx.fillStyle = "#fbfcfd";
+    ctx.beginPath();
+    roundedRectPath(ctx, left + 26, y - 26, width - 52, 58, 12);
+    ctx.fill();
+
+    ctx.fillStyle = "#1c2430";
+    ctx.font = "800 24px PingFang SC, Microsoft YaHei, sans-serif";
+    ctx.fillText(row.person.name, left + 48, y + 2);
+
+    ctx.fillStyle = "#657184";
+    ctx.font = "600 18px PingFang SC, Microsoft YaHei, sans-serif";
+    ctx.fillText(row.featured, left + 48, y + 26);
+
+    ctx.fillStyle = "#657184";
+    ctx.font = "700 17px PingFang SC, Microsoft YaHei, sans-serif";
+    ctx.fillText(`神迹 ${row.rewardStats.minor} · 五金店 ${row.rewardStats.grand} · 放纵日 ${row.rewardStats.penalty}`, left + 520, y + 26);
+
+    ctx.fillStyle = "#e7edf0";
+    ctx.beginPath();
+    roundedRectPath(ctx, left + 520, y - 8, 250, 12, 8);
+    ctx.fill();
+    ctx.fillStyle = "#2f8f6f";
+    ctx.beginPath();
+    roundedRectPath(ctx, left + 520, y - 8, 250 * progress, 12, 8);
+    ctx.fill();
+
+    ctx.fillStyle = "#2f8f6f";
+    ctx.font = "900 24px PingFang SC, Microsoft YaHei, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(`${row.positiveCount} 枚`, left + width - 48, y + 4);
+    ctx.textAlign = "left";
+  });
+
+  return panelHeight;
+}
+
+function generateReportImage() {
+  const weeklyLeaderboard = getWeeklyLeaderboard();
+  const totalLeaderboard = getTotalLeaderboard();
+  const achievementRows = getPersonAchievementReportRows();
+  const canvas = document.createElement("canvas");
+  const width = 1080;
+  const firstHeight = 92 + Math.max(weeklyLeaderboard.length, 1) * 72;
+  const secondHeight = 92 + Math.max(totalLeaderboard.length, 1) * 72;
+  const achievementReportHeight = 96 + Math.max(achievementRows.length, 1) * 78;
+  const achievementReportTop = 310 + firstHeight + 28 + secondHeight + 28;
+  const footerTop = achievementReportTop + achievementReportHeight + 58;
+  const height = Math.max(footerTop + 88, 960);
+  const ctx = canvas.getContext("2d");
+  canvas.width = width;
+  canvas.height = height;
+
+  ctx.fillStyle = "#f7f5ef";
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillStyle = "rgba(49, 95, 159, 0.12)";
+  ctx.beginPath();
+  ctx.ellipse(160, 80, 260, 120, -0.25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(47, 143, 111, 0.12)";
+  ctx.beginPath();
+  ctx.ellipse(900, 140, 260, 140, 0.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#1c2430";
+  ctx.font = "900 54px PingFang SC, Microsoft YaHei, sans-serif";
+  ctx.fillText("自律周结算战报", 80, 104);
+
+  ctx.fillStyle = "#657184";
+  ctx.font = "600 24px PingFang SC, Microsoft YaHei, sans-serif";
+  ctx.fillText(`${getWeekRange()} · ${state.people.length} 位成员`, 82, 144);
+
+  ctx.fillStyle = "#2f8f6f";
+  ctx.font = "900 72px PingFang SC, Microsoft YaHei, sans-serif";
+  const allWeekScore = state.people.reduce((sum, person) => sum + calculateScore(getPersonWeekTotals(person.id)), 0);
+  ctx.fillText(String(allWeekScore), 82, 236);
+  ctx.fillStyle = "#657184";
+  ctx.font = "700 22px PingFang SC, Microsoft YaHei, sans-serif";
+  ctx.fillText("全员本周积分", 84, 268);
+
+  drawRankingSection(ctx, "周排行", "每周一自然重置，记录当前周表现", weeklyLeaderboard, "currentScore", 310);
+  const totalTop = 310 + firstHeight + 28;
+  drawRankingSection(ctx, "总排行", "已结算历史 + 当前周积分", totalLeaderboard, "totalScore", totalTop);
+  const achievementTop = totalTop + secondHeight + 28;
+  drawAchievementReportSection(ctx, achievementTop, achievementRows);
+
+  ctx.fillStyle = "#657184";
+  ctx.font = "600 18px PingFang SC, Microsoft YaHei, sans-serif";
+  ctx.fillText(`生成时间：${new Date().toLocaleString("zh-CN")}`, 80, achievementTop + achievementReportHeight + 48);
+
+  return canvas.toDataURL("image/png");
+}
+
+function generateReport() {
+  currentReportImageUrl = generateReportImage();
+  reportModalImage.src = currentReportImageUrl;
+  reportDownloadButton.href = currentReportImageUrl;
+  reportDownloadButton.download = `SERE-${getWeekKey()}-战报.png`;
+  reportModal.hidden = false;
+}
+
+function closeReportModal() {
+  reportModal.hidden = true;
+}
+
+async function copyReportImage() {
+  if (!currentReportImageUrl) return;
+  const response = await fetch(currentReportImageUrl);
+  const blob = await response.blob();
+
+  if (navigator.clipboard?.write && window.ClipboardItem) {
+    await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+    showFeedback("战报已复制到剪贴板", "minor");
+    return;
+  }
+
+  const link = document.createElement("a");
+  link.href = currentReportImageUrl;
+  link.download = `SERE-${getWeekKey()}-战报.png`;
+  link.click();
+  showFeedback("当前浏览器不支持图片直复制，已改为下载", "minor");
 }
 
 function renderAchievements(unlocked) {
@@ -934,7 +1371,7 @@ function renderAchievements(unlocked) {
             <div class="mini-progress" aria-hidden="true">
               <span style="width: ${achievement.percent}%"></span>
             </div>
-            <small>${isUnlocked ? "已解锁" : "进行中"} · ${formatProgressValue(achievement.value, achievement.target)}</small>
+            <small>${isUnlocked ? "已解锁" : "进行中"} · ${formatProgressValue(achievement.value, achievement.target)} · 点亮 ${achievement.count} 次</small>
           </div>
         </article>
       `;
@@ -954,11 +1391,13 @@ function renderHistory() {
       const details = week.people
         .map((personWeek) => `${personWeek.personName} ${personWeek.score} 分`)
         .join(" / ");
+      const settledBy = week.settledByPersonName ? `<p>本周裁判：${week.settledByPersonName}</p>` : "";
       return `
         <article class="history-item">
           <div>
             <h3>${week.range}</h3>
             <p>${details}</p>
+            ${settledBy}
           </div>
           <strong>${champion?.personName || "-"} 领先</strong>
         </article>
@@ -989,6 +1428,7 @@ function settleWeek() {
     return;
   }
 
+  const activePerson = getActivePerson();
   const people = state.people.map((person) => {
     const totals = getPersonWeekTotals(person.id);
     const dailyEntries = getWeekDays().map((date) => {
@@ -1013,6 +1453,8 @@ function settleWeek() {
     weekKey: getWeekKey(),
     range: getWeekRange(),
     people,
+    settledByPersonId: activePerson.id,
+    settledByPersonName: activePerson.name,
     settledAt: new Date().toISOString(),
   });
 
@@ -1048,6 +1490,13 @@ personForm.addEventListener("submit", (event) => {
 document.querySelector("#settleWeek").addEventListener("click", settleWeek);
 document.querySelector("#resetWeek").addEventListener("click", resetWeek);
 document.querySelector("#clearHistory").addEventListener("click", clearHistory);
+generateReportButton.addEventListener("click", generateReport);
+closeReportModalButton.addEventListener("click", closeReportModal);
+reportModalBackdrop.addEventListener("click", closeReportModal);
+reportCopyButton.addEventListener("click", copyReportImage);
+reportModal.addEventListener("click", (event) => {
+  if (event.target === reportModal) closeReportModal();
+});
 
 async function init() {
   render();

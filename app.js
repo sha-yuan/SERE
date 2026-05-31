@@ -449,7 +449,7 @@ function getDateFromKey(dateKey) {
   return new Date(year, month - 1, day);
 }
 
-function getWeekDays(date = new Date()) {
+function getCalendarWeekDays(date = new Date()) {
   const current = new Date(date);
   const day = current.getDay() || 7;
   const monday = new Date(current);
@@ -462,13 +462,41 @@ function getWeekDays(date = new Date()) {
   });
 }
 
-function getWeekRange(date = new Date()) {
-  const days = getWeekDays(date);
+function getCalendarWeekKey(date = new Date()) {
+  return getDateKey(getCalendarWeekDays(date)[0]);
+}
+
+function getCalendarWeekRange(date = new Date()) {
+  const days = getCalendarWeekDays(date);
   return `${formatDate(days[0])} - ${formatDate(days.at(-1))}`;
 }
 
-function getWeekKey(date = new Date()) {
-  return getDateKey(getWeekDays(date)[0]);
+function isWeekSettled(date = new Date()) {
+  const weekKey = getCalendarWeekKey(date);
+  const weekRange = getCalendarWeekRange(date);
+  return state.history.some((week) => week.weekKey === weekKey || week.range === weekRange);
+}
+
+function getActiveWeekDate() {
+  const today = new Date();
+  const isMonday = (today.getDay() || 7) === 1;
+  if (!isMonday) return today;
+
+  const previousWeekDate = new Date(today);
+  previousWeekDate.setDate(today.getDate() - 1);
+  return isWeekSettled(previousWeekDate) ? today : previousWeekDate;
+}
+
+function getWeekDays(date = getActiveWeekDate()) {
+  return getCalendarWeekDays(date);
+}
+
+function getWeekRange(date = getActiveWeekDate()) {
+  return getCalendarWeekRange(date);
+}
+
+function getWeekKey(date = getActiveWeekDate()) {
+  return getCalendarWeekKey(date);
 }
 
 function formatDate(date) {
